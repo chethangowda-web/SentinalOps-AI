@@ -2,20 +2,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedDatabase(customPrisma?: PrismaClient) {
+  const p = customPrisma || prisma;
   console.log('Clearing database...');
-  await prisma.auditLog.deleteMany();
-  await prisma.incidentReport.deleteMany();
-  await prisma.approval.deleteMany();
-  await prisma.systemMetric.deleteMany();
-  await prisma.incidentLog.deleteMany();
-  await prisma.incident.deleteMany();
-  await prisma.knowledgeDocument.deleteMany();
-  await prisma.historicalIncident.deleteMany();
-  await prisma.user.deleteMany();
+  await p.auditLog.deleteMany();
+  await p.incidentReport.deleteMany();
+  await p.approval.deleteMany();
+  await p.systemMetric.deleteMany();
+  await p.incidentLog.deleteMany();
+  await p.incident.deleteMany();
+  await p.knowledgeDocument.deleteMany();
+  await p.historicalIncident.deleteMany();
+  await p.user.deleteMany();
 
   console.log('Seeding Users...');
-  const rajesh = await prisma.user.create({
+  const rajesh = await p.user.create({
     data: {
       name: 'Rajesh Kumar',
       email: 'rajesh.kumar@sentinelops.ai',
@@ -23,7 +24,7 @@ async function main() {
     },
   });
 
-  const priya = await prisma.user.create({
+  const priya = await p.user.create({
     data: {
       name: 'Priya Sharma',
       email: 'priya.sharma@sentinelops.ai',
@@ -31,7 +32,7 @@ async function main() {
     },
   });
 
-  const arun = await prisma.user.create({
+  const arun = await p.user.create({
     data: {
       name: 'Arun Patel',
       email: 'arun.patel@sentinelops.ai',
@@ -39,7 +40,7 @@ async function main() {
     },
   });
 
-  const deepak = await prisma.user.create({
+  const deepak = await p.user.create({
     data: {
       name: 'Deepak Hegde',
       email: 'deepak.hegde@sentinelops.ai',
@@ -48,7 +49,7 @@ async function main() {
   });
 
   console.log('Seeding Knowledge Base...');
-  await prisma.knowledgeDocument.createMany({
+  await p.knowledgeDocument.createMany({
     data: [
       {
         title: 'Database Connection Pool Runbook',
@@ -110,7 +111,7 @@ async function main() {
   });
 
   console.log('Seeding Historical Incidents...');
-  await prisma.historicalIncident.createMany({
+  await p.historicalIncident.createMany({
     data: [
       {
         incidentId: 'INC-1842',
@@ -130,8 +131,7 @@ async function main() {
   });
 
   console.log('Seeding Initial Incidents...');
-  // Seed INC-2048 in a NEW/uninvestigated state so the demo can run it fresh
-  const inc2048 = await prisma.incident.create({
+  const inc2048 = await p.incident.create({
     data: {
       incidentId: 'INC-2048',
       title: 'HTTP 500 API Failure',
@@ -147,8 +147,7 @@ async function main() {
     },
   });
 
-  // Seed logs for INC-2048 to be analyzed
-  await prisma.incidentLog.createMany({
+  await p.incidentLog.createMany({
     data: [
       { incidentId: inc2048.id, timestamp: '14:02:11', level: 'INFO', message: 'Request received GET /api/orders', source: 'STAGING-API-01' },
       { incidentId: inc2048.id, timestamp: '14:02:12', level: 'INFO', message: 'Authentication token validated', source: 'STAGING-API-01' },
@@ -162,8 +161,7 @@ async function main() {
     ],
   });
 
-  // Seed metrics for INC-2048
-  await prisma.systemMetric.createMany({
+  await p.systemMetric.createMany({
     data: [
       { incidentId: inc2048.id, metricName: 'CPU Usage', value: 92, unit: '%', status: 'danger' },
       { incidentId: inc2048.id, metricName: 'Memory Usage', value: 89, unit: '%', status: 'danger' },
@@ -174,8 +172,7 @@ async function main() {
     ],
   });
 
-  // Seed other incidents
-  const inc2049 = await prisma.incident.create({
+  const inc2049 = await p.incident.create({
     data: {
       incidentId: 'INC-2049',
       title: 'Redis Cache Latency Spike',
@@ -191,7 +188,7 @@ async function main() {
     },
   });
 
-  const inc2047 = await prisma.incident.create({
+  const inc2047 = await p.incident.create({
     data: {
       incidentId: 'INC-2047',
       title: 'SSL Certificate Expiry Warning',
@@ -207,7 +204,7 @@ async function main() {
     },
   });
 
-  const inc2050 = await prisma.incident.create({
+  const inc2050 = await p.incident.create({
     data: {
       incidentId: 'INC-2050',
       title: 'Kubernetes Pod CrashLoopBackOff',
@@ -223,8 +220,7 @@ async function main() {
     },
   });
 
-  // Seed approvals
-  await prisma.approval.create({
+  await p.approval.create({
     data: {
       incidentId: inc2050.id,
       riskLevel: 'HIGH',
@@ -246,11 +242,13 @@ async function main() {
   console.log('Seeding completed successfully!');
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  seedDatabase()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

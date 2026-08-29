@@ -6,6 +6,7 @@ import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { searchKnowledgeBase, runGoldenPathAgent, detectLanguage } from './services/agent';
 import { llm } from './services/llm';
+import { seedDatabase } from './db/seed';
 
 dotenv.config();
 
@@ -428,5 +429,10 @@ app.get('*', (req, res) => {
 });
 
 app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 SentinelOps AI Backend is running on http://localhost:${PORT}`);
+  console.log(`🚀 SentinelOps AI Backend is running on http://0.0.0.0:${PORT}`);
+  
+  // Asynchronous non-blocking database seed
+  seedDatabase(prisma).catch(err => {
+    console.error('Background database seeding error (non-fatal):', err);
+  });
 });
