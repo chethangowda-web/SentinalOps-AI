@@ -9,7 +9,8 @@ import { llm } from './services/llm';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Force port 8080 if Railway provides a misconfigured '808' port, otherwise fallback to 8080
+const PORT = process.env.PORT === '808' ? 8080 : (process.env.PORT || 8080);
 const prisma = new PrismaClient();
 
 app.use(cors());
