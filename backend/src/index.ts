@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { searchKnowledgeBase, runGoldenPathAgent, detectLanguage } from './services/agent';
 import { llm } from './services/llm';
@@ -9,15 +10,14 @@ import { llm } from './services/llm';
 dotenv.config();
 
 const app = express();
-// Force port 8080 if Railway provides a misconfigured '808' port, otherwise fallback to 8080
-const PORT = process.env.PORT === '808' ? 8080 : (process.env.PORT || 8080);
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json());
 
-// Root & API Health Check
-app.get(['/', '/api'], (req, res) => {
+// API Health Check
+app.get('/api', (req, res) => {
   res.json({
     status: 'ok',
     service: 'SentinelOps AI Backend API',
@@ -413,7 +413,18 @@ const frontendPath = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendPath));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  const indexPath = path.join(frontendPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.json({
+      status: 'ok',
+      service: 'SentinelOps AI Backend API',
+      version: '1.0.0',
+      message: 'Frontend bundle not found at dist path. API endpoints are ready.',
+      endpoints: ['/api', '/api/incidents', '/api/approvals']
+    });
+  }
 });
 
 app.listen(Number(PORT), '0.0.0.0', () => {
