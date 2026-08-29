@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { searchKnowledgeBase, runGoldenPathAgent, detectLanguage } from './services/agent';
 import { llm } from './services/llm';
@@ -404,6 +405,14 @@ ${topDoc ? `[Runbook Match: ${topDoc.title}]: ${topDoc.content}` : 'No matching 
     console.error('Chat error:', error);
     res.status(500).json({ error: 'Failed to process chat message' });
   }
+});
+
+// Serve frontend static files in production
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.listen(Number(PORT), '0.0.0.0', () => {
