@@ -1,0 +1,113 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String
+  role      String     // ADMIN, DEVOPS, ENGINEER, VIEWER
+  createdAt DateTime   @default(now())
+  incidents Incident[]
+  approvals Approval[]
+}
+
+model Incident {
+  id            String         @id @default(uuid())
+  incidentId    String         @unique // e.g. INC-2048
+  title         String
+  description   String
+  service       String
+  environment   String
+  severity      String         // LOW, MEDIUM, HIGH, CRITICAL
+  status        String         // NEW, INVESTIGATING, ROOT_CAUSE_IDENTIFIED, REMEDIATION_PENDING, APPROVED, REJECTED, RESOLVED
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  assignedToId  String?
+  assignedTo    User?          @relation(fields: [assignedToId], references: [id])
+  confidence    Int?
+  rootCause     String?
+  tags          String         // Comma separated tags e.g. "api,database"
+  logs          IncidentLog[]
+  metrics       SystemMetric[]
+  approvals     Approval[]
+  reports       IncidentReport[]
+  auditLogs     AuditLog[]
+}
+
+model IncidentLog {
+  id          String   @id @default(uuid())
+  incidentId  String
+  timestamp   String
+  level       String   // INFO, WARN, ERROR, DEBUG
+  message     String
+  source      String
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+}
+
+model SystemMetric {
+  id          String   @id @default(uuid())
+  incidentId  String
+  metricName  String
+  value       Float
+  unit        String
+  status      String   // ok, warning, danger
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+}
+
+model KnowledgeDocument {
+  id        String   @id @default(uuid())
+  title     String
+  category  String   // Runbook, Guide, Policy, Documentation, Post-Mortem
+  content   String
+  relevance Int      // Mock relevance for default UI retrieval
+  createdAt String
+}
+
+model HistoricalIncident {
+  id          String   @id @default(uuid())
+  incidentId  String   @unique
+  title       String
+  rootCause   String
+  confidence  Int
+  createdAt   String
+}
+
+model Approval {
+  id                String   @id @default(uuid())
+  incidentId        String
+  riskLevel         String   // LOW, MEDIUM, HIGH
+  status            String   // PENDING, APPROVED, REJECTED
+  recommendedAction String
+  reasoning         String
+  aiConfidence      Int
+  assignedToId      String?
+  assignedTo        User?    @relation(fields: [assignedToId], references: [id])
+  createdAt         DateTime @default(now())
+  evidence          String   // JSON array string of evidence items
+  affectedServices  String   // Comma separated e.g. "Staging API,Order Service"
+  incident          Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+}
+
+model IncidentReport {
+  id          String   @id @default(uuid())
+  incidentId  String
+  content     String   // Markdown content
+  generatedAt DateTime @default(now())
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  incidentId  String?
+  timestamp   DateTime @default(now())
+  action      String   // e.g. "AI_ANALYSIS", "ESCULATION", "HUMAN_APPROVAL"
+  detail      String
+  userEmail   String?  // if triggered by a user
+  incident    Incident? @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+}
