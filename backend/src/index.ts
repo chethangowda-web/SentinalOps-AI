@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
 import { PrismaClient } from '@prisma/client';
 import { searchKnowledgeBase, runGoldenPathAgent, detectLanguage } from './services/agent';
 import { llm } from './services/llm';
@@ -431,8 +432,16 @@ app.get('*', (req, res) => {
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 SentinelOps AI Backend is running on http://0.0.0.0:${PORT}`);
   
-  // Asynchronous non-blocking database seed
-  seedDatabase(prisma).catch(err => {
-    console.error('Background database seeding error (non-fatal):', err);
+  // Asynchronously push schema & seed database in background without blocking server startup
+  exec('npx prisma db push --accept-data-loss', (err, stdout, stderr) => {
+    if (err) {
+      console.error('Prisma db push background warning:', err);
+    } else {
+      console.log('✅ SQLite schema synchronized successfully.');
+    }
+    
+    seedDatabase(prisma).catch(seedErr => {
+      console.error('Background database seeding error (non-fatal):', seedErr);
+    });
   });
 });
